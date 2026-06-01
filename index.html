@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbonização do Campo - Agrinho 2026</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="container header-flex">
+            <div class="logo">Agrinho <span>2026</span></div>
+            
+            <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+
+            <nav class="nav-menu" id="nav-menu">
+                <ul>
+                    <li><a href="#inicio" class="nav-link">Início</a></li>
+                    <li><a href="#importancia" class="nav-link">Importância</a></li>
+                    <li><a href="#topicos" class="nav-link">Tópicos do Campo</a></li>
+                    <li><a href="#quiz" class="nav-link">Quiz</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section id="inicio" class="hero">
+        <div class="hero-content container">
+            <h1>Carbonização do Campo</h1>
+            <p>Transformando a agricultura através do sequestro de carbono para construir um amanhã sustentável.</p>
+            <a href="#importancia" class="btn">Conhecer o Projeto</a>
+        </div>
+    </section>
+
+    <section id="importancia" class="container section">
+        <h2>A Importância do Carbono no Solo</h2>
+        <p class="subtitle">Entenda o impacto direto da sustentabilidade na agricultura moderna.</p>
+        
+        <div class="grid-cards">
+            <div class="card">
+                <div class="card-icon">🌱</div>
+                <h3>Fixação Biológica</h3>
+                <p>Manter os resíduos vegetais no solo garante que o CO₂ seja assimilado pela biomassa, atuando como um poderoso dreno natural de gases.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">💧</div>
+                <h3>Resiliência Hídrica</h3>
+                <p>Solos ricos em matéria orgânica retêm muito mais água, protegendo a lavoura contra períodos prolongados de estiagem.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🏆</div>
+                <h3>Inovação Agrinho</h3>
+                <p>O Agrinho 2026 estimula os estudantes a conectar a tecnologia com a conservação e o futuro do agronegócio.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="topicos" class="bg-light section">
+        <div class="container menu-topicos-container">
+            <h2>Tópicos Principais</h2>
+            <p class="subtitle">Clique nas abas abaixo para explorar os fundamentos técnicos da carbonização.</p>
+            
+            <div class="accordion">
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>1. O que é o Sequestro de Carbono?</span>
+                        <span class="icon">+</span>
+                    </button>
+                    <div class="accordion-content">
+                        <p>É o processo de remoção do gás carbônico ($CO_2$) da atmosfera, convertendo-o em oxigênio e retendo o carbono de forma sólida na matéria orgânica do solo e nas plantas.</p>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>2. Prática do Plantio Direto</span>
+                        <span class="icon">+</span>
+                    </button>
+                    <div class="accordion-content">
+                        <p>Técnica de cultivo onde a semente é colocada no solo não revolvido (sem aração ou gradagem). A palhada anterior protege o solo, diminuindo as perdas de carbono por erosão e oxidação.</p>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <button class="accordion-header">
+                        <span>3. Sistema ILPF</span>
+                        <span class="icon">+</span>
+                    </button>
+                    <div class="accordion-content">
+                        <p>A Integração Lavoura-Pecuária-Floresta combina diferentes sistemas produtivos em uma mesma área. As árvores plantadas maximizam o sequestro de carbono a longo prazo, neutralizando os gases da pecuária.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="quiz" class="container section">
+        <h2>Desafio de Conhecimento</h2>
+        <p class="subtitle">Descubra o quanto você já aprendeu sobre a conservação do campo.</p>
+        
+        <div class="quiz-box">
+            <div id="pergunta-box">
+                <h3 id="pergunta">Carregando questionário...</h3>
+                <div id="alternativas" class="alternativas-grid"></div>
+            </div>
+            <div id="resultado" class="hidden"></div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 Agrinho Paraná - Carbonização do Campo. Conteúdo estritamente educacional.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
