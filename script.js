@@ -1,229 +1,183 @@
-/* Configurações Globais */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    scroll-behavior: smooth;
+/* ==========================================================================
+   1. GERENCIAMENTO E LOGICA DO QUIZ INTERATIVO
+   ========================================================================== */
+
+let perguntaAtual = 0;
+let pontuacaoQuiz = 0;
+let respostaSelecionadaNestaRodada = false;
+
+// Elementos da Interface (DOM)
+const textoPergunta = document.getElementById("texto-pergunta");
+const numPergunta = document.getElementById("num-pergunta");
+const caixaAlternativas = document.getElementById("caixa-alternativas");
+const barraProgresso = document.getElementById("barra-progresso");
+const dicaNavegacao = document.getElementById("dica-navegacao");
+const quizFluxo = document.getElementById("quiz-fluxo");
+const quizResultado = document.getElementById("quiz-resultado");
+const pontosFinais = document.getElementById("pontos-finais");
+
+// Inicializa o Quiz assim que a página carregar
+window.addEventListener("DOMContentLoaded", () => {
+    carregarPergunta();
+    
+    // Ouvinte de teclado para avançar a pergunta com a tecla 'D'
+    window.addEventListener("keydown", (e) => {
+        if (e.key.toLowerCase() === "d" && respostaSelecionadaNestaRodada) {
+            proximaPergunta();
+        }
+    });
+});
+
+// Carrega a pergunta atual na tela
+function carregarPergunta() {
+    respostaSelecionadaNestaRodada = false;
+    dicaNavegacao.classList.add("hidden");
+    caixaAlternativas.innerHTML = "";
+
+    const dadosPergunta = perguntasQuiz[perguntaAtual];
+    
+    // Atualiza textos e barra de progresso
+    numPergunta.textContent = `Pergunta ${perguntaAtual + 1} de ${perguntasQuiz.length}`;
+    textoPergunta.textContent = dadosPergunta.pergunta;
+    
+    const porcentagemProgresso = ((perguntaAtual + 1) / perguntasQuiz.length) * 100;
+    barraProgresso.style.width = `${porcentagemProgresso}%`;
+
+    // Renderiza os botões das alternativas
+    dadosPergunta.alternativas.forEach((alternativa, index) => {
+        const botao = document.createElement("button");
+        botao.className = "btn-alternativa";
+        botao.textContent = alternativa;
+        botao.onclick = () => verificarResposta(index, botao);
+        caixaAlternativas.appendChild(botao);
+    });
 }
 
-:root {
-    --primary: #2e7d32;
-    --primary-dark: #1b5e20;
-    --accent: #a5d6a7;
-    --dark: #212529;
-    --light: #f8f9fa;
-    --white: #ffffff;
+// Valida a resposta do usuário
+function verificarResposta(indexSelecionado, botaoClicado) {
+    if (respostaSelecionadaNestaRodada) return; // Evita cliques múltiplos
+    respostaSelecionadaNestaRodada = true;
+
+    const correta = perguntasQuiz[perguntaAtual].correta;
+    const todosBotoes = caixaAlternativas.querySelectorAll(".btn-alternativa");
+
+    if (indexSelecionado === correta) {
+        botaoClicado.style.backgroundColor = "var(--success-light)";
+        botaoClicado.style.borderColor = "var(--success)";
+        pontuacaoQuiz++;
+    } else {
+        botaoClicado.style.backgroundColor = "var(--error-light)";
+        botaoClicado.style.borderColor = "var(--error)";
+        // Destaca a correta para o aluno aprender
+        todosBotoes[correta].style.backgroundColor = "var(--success-light)";
+        todosBotoes[correta].style.borderColor = "var(--success)";
+    }
+
+    // Desabilita os outros botões
+    todosBotoes.forEach(btn => btn.disabled = true);
+
+    // Mostra feedback de navegação
+    dicaNavegacao.classList.remove("hidden");
 }
 
-body {
-    color: var(--dark);
-    background-color: var(--white);
-    line-height: 1.6;
+// Avança para a próxima pergunta ou encerra o quiz
+function proximaPergunta() {
+    perguntaAtual++;
+    if (perguntaAtual < perguntasQuiz.length) {
+        carregarPergunta();
+    } else {
+        // Mostra tela de resultados
+        quizFluxo.classList.add("hidden");
+        quizResultado.classList.remove("hidden");
+        pontosFinais.textContent = pontuacaoQuiz;
+    }
 }
 
-.container {
-    width: 90%;
-    max-width: 1100px;
-    margin: 0 auto;
+// Libera a seção do jogo do trator
+function liberarJogo() {
+    const sectionJogo = document.getElementById("trator-game");
+    sectionJogo.style.display = "block";
+    sectionJogo.scrollIntoView({ behavior: 'smooth' });
+    inicializarJogo();
 }
 
-.section {
-    padding: 80px 0;
+
+/* ==========================================================================
+   2. MOTOR DO MINI GAME DO TRATOR (CANVAS)
+   ========================================================================== */
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreDisplay = document.getElementById("game-score");
+const btnReset = document.getElementById("btn-reset-game");
+
+let gameInterval;
+let gameActive = false;
+let score = 0;
+
+// Configurações do Jogador (Trator)
+const trator = {
+    x: 175,
+    y: 420,
+    width: 50,
+    height: 60,
+    speed: 8
+};
+
+// Controles por teclado
+const teclas = {
+    ArrowLeft: false,
+    ArrowRight: false,
+    a: false,
+    d: false
+};
+
+// Configurações dos Obstáculos (Madeiras/Resíduos)
+let obstaculos = [];
+let spawnTimer = 0;
+let spawnRate = 60; // Frequência com que surgem novos obstáculos
+let gameSpeed = 4;   // Velocidade de descida
+
+// Escutadores do Teclado para Movimentação
+window.addEventListener("keydown", (e) => {
+    if (e.key in teclas) teclas[e.key] = true;
+});
+
+window.addEventListener("keyup", (e) => {
+    if (e.key in teclas) teclas[e.key] = false;
+});
+
+// Inicializa as variáveis do jogo
+function inicializarJogo() {
+    if (gameActive) return;
+    gameActive = true;
+    score = 0;
+    gameSpeed = 4;
+    spawnRate = 60;
+    obstaculos = [];
+    trator.x = (canvas.width / 2) - (trator.width / 2);
+    scoreDisplay.textContent = score;
+    btnReset.classList.add("hidden");
+    
+    // Roda o loop do jogo a 60 frames por segundo
+    gameInterval = setInterval(updateGame, 1000 / 60);
 }
 
-.bg-light {
-    background-color: var(--light);
-}
+// Desenha o Trator (Estilizado geometricamente em formato de Trator de fazenda)
+function desenharTrator() {
+    // Corpo Principal (Verde Agrinho)
+    ctx.fillStyle = "#1b5e20";
+    ctx.fillRect(trator.x + 5, trator.y + 15, 40, 35);
+    
+    // Cabine do Motorista
+    ctx.fillStyle = "#a5d6a7";
+    ctx.fillRect(trator.x + 10, trator.y, 30, 20);
+    
+    // Rodas Grandes Traseiras (Pretas)
+    ctx.fillStyle = "#212529";
+    ctx.fillRect(trator.x, trator.y + 30, 8, 25);
+    ctx.fillRect(trator.x + 42, trator.y + 30, 8, 25);
 
-h2 {
-    font-size: 2.2rem;
-    color: var(--primary-dark);
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-.subtitle {
-    font-size: 1.1rem;
-    color: #6c757d;
-    text-align: center;
-    margin-bottom: 50px;
-}
-
-/* Cabeçalho e Menu Hamburguer */
-header {
-    background-color: var(--white);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.header-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 0;
-}
-
-.logo {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary);
-}
-
-.logo span {
-    color: var(--dark);
-}
-
-.menu-toggle {
-    display: none;
-    flex-direction: column;
-    justify-content: space-between;
-    width: 30px;
-    height: 21px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    z-index: 1100;
-}
-
-.menu-toggle .bar {
-    height: 3px;
-    width: 100%;
-    background-color: var(--dark);
-    border-radius: 10px;
-    transition: all 0.3s ease;
-}
-
-.nav-menu ul {
-    display: flex;
-    list-style: none;
-    gap: 30px;
-}
-
-.nav-menu a {
-    text-decoration: none;
-    color: var(--dark);
-    font-weight: 600;
-    font-size: 1rem;
-    transition: color 0.2s;
-}
-
-.nav-menu a:hover {
-    color: var(--primary);
-}
-
-/* Banner Principal */
-.hero {
-    background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), 
-                url('https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=1200') no-repeat center center/cover;
-    height: 75vh;
-    display: flex;
-    align-items: center;
-    color: var(--white);
-    text-align: center;
-}
-
-.hero-content h1 {
-    font-size: 3.5rem;
-    margin-bottom: 20px;
-    font-weight: 800;
-}
-
-.hero-content p {
-    font-size: 1.25rem;
-    max-width: 700px;
-    margin: 0 auto 35px auto;
-}
-
-.btn {
-    background-color: var(--primary);
-    color: var(--white);
-    padding: 14px 35px;
-    text-decoration: none;
-    border-radius: 30px;
-    font-weight: 600;
-    box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
-    transition: background 0.2s, transform 0.2s;
-}
-
-.btn:hover {
-    background-color: var(--primary-dark);
-    transform: translateY(-2px);
-}
-
-/* Grid de Cards */
-.grid-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 30px;
-}
-
-.card {
-    background: var(--white);
-    padding: 35px 25px;
-    border-radius: 12px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.04);
-    border-top: 5px solid var(--primary);
-    text-align: center;
-    transition: transform 0.3s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-}
-
-.card-icon {
-    font-size: 2.5rem;
-    margin-bottom: 15px;
-}
-
-.card h3 {
-    margin-bottom: 15px;
-    color: var(--primary-dark);
-}
-
-/* Menu de Tópicos (Accordion) */
-.menu-topicos-container {
-    max-width: 800px;
-}
-
-.accordion-item {
-    background-color: var(--white);
-    margin-bottom: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    overflow: hidden;
-}
-
-.accordion-header {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    background: none;
-    border: none;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--dark);
-    text-align: left;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.accordion-header:hover {
-    background-color: #f1f3f5;
-}
-
-.accordion-header .icon {
-    font-size: 1.3rem;
-    color: var(--primary);
-    transition: transform 0.3s;
-}
-
-.accordion-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-
+    // Rodas Dianteiras Pequenas
+    ctx.fillRect(trator.x + 3, trator.y + 5, 6, 12);
+    ctx.fillRect(trator.x + 41, trator.y + 5, 6, 12);
