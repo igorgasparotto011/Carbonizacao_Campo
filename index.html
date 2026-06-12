@@ -14,25 +14,31 @@
     </header>
 
     <main class="container">
-        <section id="info-section" class="card">
+        <section id="menu-section" class="card menu-card">
+            <div class="menu-icon">🌱🚜</div>
+            <h2>Carbonização no Campo</h2>
+            <p class="menu-subtitle">Prepare-se para testar seus conhecimentos sobre sustentabilidade agrícola e enfrentar o Desafio do Trator!</p>
+            <button id="start-quiz-btn" class="main-btn">Iniciar Jornada</button>
+        </section>
+
+        <section id="info-section" class="card hidden">
             <h2>O que é a Carbonização no Campo?</h2>
             <p>A carbonização no campo refere-se tanto ao processo de queima incompleta da biomassa vegetal para a produção de carvão vegetal quanto ao acúmulo e retenção de carbono no solo (sequestro de carbono). Enquanto a queima descontrolada pode liberar gases de efeito estufa, práticas agrícolas sustentáveis ajudam a fixar o carbono na terra, combatendo as mudanças climáticas.</p>
         </section>
 
-        <section id="quiz-section" class="card">
+        <section id="quiz-section" class="card hidden">
             <h2>Quiz do Conhecimento</h2>
             <div id="quiz-container">
                 <p id="question-number">Pergunta 1 de 10</p>
                 <p id="question-text">Carregando pergunta...</p>
-                <div id="options-container" class="options-grid">
-                    </div>
+                <div id="options-container" class="options-grid"></div>
             </div>
         </section>
 
         <section id="game-section" class="card hidden">
             <h2>Jogo da Fazenda: Desafio do Trator</h2>
             <p>Use as teclas do teclado para mover o trator e desviar dos obstáculos de fumaça e troncos!</p>
-            <p><strong>Controles:</strong> D = Frente | W = Direita | A = Esquerda</p>
+            <p class="controls-hint"><strong>Controles:</strong> D = Avançar | W = Direita | A = Esquerda</p>
             <div id="canvas-container">
                 <canvas id="gameCanvas" width="600" height="400"></canvas>
             </div>
