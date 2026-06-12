@@ -92,14 +92,26 @@ const quizData = [
     }
 ];
 
-// --- VARIÁVEIS DO QUIZ ---
+// --- VARIÁVEIS DE ELEMENTOS ---
 let currentQuestionIndex = 0;
 
+const menuSection = document.getElementById('menu-section');
+const infoSection = document.getElementById('info-section');
+const quizSection = document.getElementById('quiz-section');
+const gameSection = document.getElementById('game-section');
+
+const startQuizBtn = document.getElementById('start-quiz-btn');
 const questionNumberEl = document.getElementById('question-number');
 const questionTextEl = document.getElementById('question-text');
 const optionsContainerEl = document.getElementById('options-container');
-const quizSection = document.getElementById('quiz-section');
-const gameSection = document.getElementById('game-section');
+
+// Ouvinte do Menu Inicial
+startQuizBtn.addEventListener('click', () => {
+    menuSection.classList.add('hidden');
+    infoSection.classList.remove('hidden');
+    quizSection.classList.remove('hidden');
+    startQuiz();
+});
 
 // --- INICIALIZAR QUIZ ---
 function startQuiz() {
@@ -126,25 +138,24 @@ function showQuestion() {
 function selectAnswer(selectedButton, isCorrect) {
     if (isCorrect) {
         selectedButton.classList.add('correct');
-        // Pequeno atraso para o usuário ver que acertou e passar para a próxima
         setTimeout(() => {
             currentQuestionIndex++;
             if (currentQuestionIndex < quizData.length) {
                 showQuestion();
             } else {
-                // Fim do quiz -> Libera o jogo
                 quizSection.classList.add('hidden');
+                infoSection.classList.add('hidden');
                 gameSection.classList.remove('hidden');
                 initGame();
             }
         }, 500);
     } else {
         selectedButton.classList.add('wrong');
-        selectedButton.disabled = true; // Desabilita a resposta errada clicada
+        selectedButton.disabled = true;
     }
 }
 
-// --- LOGICA DO JOGO DO TRATOR ---
+// --- LOGICA DO JOGO DO TRATOR APERFEIÇOADO ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
@@ -155,9 +166,9 @@ let trator, obstaculos, gameScore, gameInterval, isGameOver;
 function initGame() {
     trator = {
         x: canvas.width / 2 - 20,
-        y: canvas.height - 70,
+        y: canvas.height - 80,
         width: 40,
-        height: 50,
+        height: 55,
         speedX: 0,
         speedY: 0
     };
@@ -167,6 +178,8 @@ function initGame() {
     scoreEl.innerText = gameScore;
     restartBtn.classList.add('hidden');
     
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     
@@ -177,39 +190,32 @@ function initGame() {
 function handleKeyDown(e) {
     if (isGameOver) return;
     const key = e.key.toLowerCase();
-    
-    if (key === 'd') {
-        trator.speedY = -3; // Anda para "frente" (sobe na tela na nossa pista vertical)
-    }
-    if (key === 'w') {
-        trator.speedX = 4;  // Vai para a direita
-    }
-    if (key === 'a') {
-        trator.speedX = -4; // Vai para a esquerda
-    }
+    if (key === 'd') trator.speedY = -3.5; 
+    if (key === 'w') trator.speedX = 4.5;  
+    if (key === 'a') trator.speedX = -4.5; 
 }
 
 function handleKeyUp(e) {
     const key = e.key.toLowerCase();
-    if (key === 'd' || key === 'w' || key === 'a') {
-        if (key === 'd') trator.speedY = 0;
-        if (key === 'w' || key === 'a') trator.speedX = 0;
-    }
+    if (key === 'd') trator.speedY = 0;
+    if (key === 'w' || key === 'a') trator.speedX = 0;
 }
 
 function criarObstaculo() {
-    // Cria obstáculos no topo e eles descem em direção ao trator
-    if (Math.random() < 0.03) {
-        let largura = 40 + Math.random() * 40;
-        let posX = Math.random() * (canvas.width - largura);
-        // Alterna entre tipo tronco (marrom) e fumaça de carbonização (cinza)
-        let tipo = Math.random() > 0.5 ? '#795548' : '#757575'; 
+    // Frequência de geração aumenta levemente com os pontos obtidos
+    let chance = 0.03 + (gameScore * 0.001);
+    if (Math.random() < Math.min(chance, 0.08)) {
+        let largura = 35 + Math.random() * 35;
+        let posX = 60 + Math.random() * (canvas.width - 120 - largura);
+        let tipo = Math.random() > 0.4 ? 'tronco' : 'fumaca'; 
+        
         obstaculos.push({
             x: posX,
-            y: -30,
+            y: -40,
             width: largura,
-            height: 25,
-            color: tipo
+            height: tipo === 'tronco' ? 25 : 35,
+            tipo: tipo,
+            faseFumaca: 0 // Usado para efeitos visuais dinâmicos da fumaça
         });
     }
 }
@@ -217,51 +223,98 @@ function criarObstaculo() {
 function updateGame() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Desenha a Pista/Estrada da fazenda de fundo
-    ctx.fillStyle = '#7d5c32'; // Pista de terra
+    // 1. DESENHO DO CENÁRIO (Pista de terra estilizada com vegetação lateral)
+    ctx.fillStyle = '#6d4c41'; // Terra fértil
     ctx.fillRect(50, 0, canvas.width - 100, canvas.height);
     
-    // Movimentação do Trator com limites de tela
-    trator.x += trator.x + trator.speedX > 50 && trator.x + trator.speedX < canvas.width - 90 ? trator.speedX : 0;
-    trator.y += trator.y + trator.speedY > 50 && trator.y + trator.speedY < canvas.height - 60 ? trator.speedY : 0;
+    // Linhas de demarcação do limite da plantação
+    ctx.strokeStyle = '#a78bfa';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 10]);
+    ctx.beginPath();
+    ctx.moveTo(55, 0); ctx.lineTo(55, canvas.height);
+    ctx.moveTo(canvas.width - 55, 0); ctx.lineTo(canvas.width - 55, canvas.height);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Detalhes da grama lateral externa
+    ctx.fillStyle = '#33691e';
+    ctx.fillRect(0, 0, 50, canvas.height);
+    ctx.fillRect(canvas.width - 50, 0, 50, canvas.height);
     
-    // Se o trator não estiver subindo acelerado, ele desce um pouco simulando a velocidade da pista
-    if (trator.speedY === 0 && trator.y < canvas.height - 70) {
-        trator.y += 1; 
+    // 2. MOVIMENTAÇÃO DO TRATOR (Com travas de borda seguras)
+    trator.x += (trator.x + trator.speedX > 55 && trator.x + trator.speedX < canvas.width - 55 - trator.width) ? trator.speedX : 0;
+    trator.y += (trator.y + trator.speedY > 20 && trator.y + trator.speedY < canvas.height - trator.height - 10) ? trator.speedY : 0;
+    
+    if (trator.speedY === 0 && trator.y < canvas.height - 80) {
+        trator.y += 1.2; 
     }
 
-    // Desenha o Trator (Verde)
-    ctx.fillStyle = '#1b5e20';
-    ctx.fillRect(trator.x, trator.y, trator.width, trator.height);
-    // Detalhe das rodas do trator
-    ctx.fillStyle = '#000';
-    ctx.fillRect(trator.x - 5, trator.y + 5, 5, 15);
-    ctx.fillRect(trator.x + trator.width, trator.y + 5, 5, 15);
-    ctx.fillRect(trator.x - 5, trator.y + 30, 5, 18);
-    ctx.fillRect(trator.x + trator.width, trator.y + 30, 5, 18);
+    // 3. DESENHO DO TRATOR MELHORADO TRIDIMENSIONAL
+    // Rodas traseiras grandes pretas
+    ctx.fillStyle = '#111';
+    ctx.fillRect(trator.x - 6, trator.y + 25, 7, 22);
+    ctx.fillRect(trator.x + trator.width - 1, trator.y + 25, 7, 22);
+    // Rodas dianteiras pequenas
+    ctx.fillRect(trator.x - 4, trator.y + 4, 5, 12);
+    ctx.fillRect(trator.x + trator.width - 1, trator.y + 4, 5, 12);
+    
+    // Corpo principal (Verde Clássico Agro)
+    ctx.fillStyle = '#2e7d32';
+    ctx.fillRect(trator.x, trator.y + 10, trator.width, trator.height - 15);
+    // Motor frontal estreito
+    ctx.fillRect(trator.x + 6, trator.y, trator.width - 12, 15);
+    
+    // Cabine do Piloto (Amarelo/Vidro)
+    ctx.fillStyle = '#fff59d';
+    ctx.fillRect(trator.x + 5, trator.y + 18, trator.width - 10, 16);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(trator.x + 5, trator.y + 18, trator.width - 10, 16);
+    
+    // Escapamento de fumaça ecológica
+    ctx.fillStyle = '#cfd8dc';
+    ctx.fillRect(trator.x + 8, trator.y + 4, 3, 6);
 
-    // Gerenciar Obstáculos
+    // 4. GERENCIAR OBSTÁCULOS
     criarObstaculo();
     
     for (let i = 0; i < obstaculos.length; i++) {
-        obstaculos[i].y += 3; // Velocidade com que os obstáculos descem
+        let obs = obstaculos[i];
+        obs.y += 3.5; // Velocidade de descida
         
-        // Desenha Obstáculo
-        ctx.fillStyle = obstaculos[i].color;
-        ctx.fillRect(obstaculos[i].x, obstaculos[i].y, obstaculos[i].width, obstaculos[i].height);
+        // Desenho customizado por tipo de obstáculo
+        if (obs.tipo === 'tronco') {
+            // Corpo do tronco (Marrom escuro)
+            ctx.fillStyle = '#4e342e';
+            ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+            // Textura das extremidades (Anéis de madeira)
+            ctx.fillStyle = '#d7ccc8';
+            ctx.fillRect(obs.x, obs.y, 6, obs.height);
+            ctx.fillRect(obs.x + obs.width - 6, obs.y, 6, obs.height);
+        } else {
+            // Nuvem de fumaça de carbonização poluente (Círculos cinzas esfumaçados)
+            obs.faseFumaca += 0.1;
+            ctx.fillStyle = 'rgba(100, 110, 120, 0.75)';
+            ctx.beginPath();
+            ctx.arc(obs.x + obs.width/2, obs.y + obs.height/2, obs.width/2, 0, Math.PI * 2);
+            ctx.arc(obs.x + obs.width/4, obs.y + obs.height/3, obs.width/3, 0, Math.PI * 2);
+            ctx.arc(obs.x + (obs.width*3)/4, obs.y + obs.height/3, obs.width/3, 0, Math.PI * 2);
+            ctx.fill();
+        }
         
-        // Verificação de Colisão
+        // Detecção de Colisão Precisa
         if (
-            trator.x < obstaculos[i].x + obstaculos[i].width &&
-            trator.x + trator.width > obstaculos[i].x &&
-            trator.y < obstaculos[i].y + obstaculos[i].height &&
-            trator.y + trator.height > obstaculos[i].y
+            trator.x < obs.x + obs.width &&
+            trator.x + trator.width > obs.x &&
+            trator.y < obs.y + obs.height &&
+            trator.y + trator.height > obs.y
         ) {
             gameOver();
         }
         
-        // Remove obstáculos que saíram da tela e pontua
-        if (obstaculos[i].y > canvas.height) {
+        // Passou sem bater: limpa e adiciona pontuação
+        if (obs.y > canvas.height) {
             obstaculos.splice(i, 1);
             i--;
             gameScore++;
@@ -273,18 +326,21 @@ function updateGame() {
 function gameOver() {
     isGameOver = true;
     clearInterval(gameInterval);
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    
+    // Cortina escura estilizada de Game Over
+    ctx.fillStyle = 'rgba(26, 42, 24, 0.85)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     ctx.fillStyle = '#fff';
-    ctx.font = '30px sans-serif';
+    ctx.font = 'bold 28px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText("Fim de Jogo na Fazenda!", canvas.width / 2, canvas.height / 2 - 10);
+    ctx.fillText("Fim de Jogo no Campo!", canvas.width / 2, canvas.height / 2 - 20);
+    
+    ctx.fillStyle = '#a5d6a7';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(`Você ajudou a monitorar ${gameScore} setores da fazenda!`, canvas.width / 2, canvas.height / 2 + 15);
     
     restartBtn.classList.remove('hidden');
 }
 
 restartBtn.addEventListener('click', initGame);
-
-// Inicia o Quiz ao carregar a página
-startQuiz();
