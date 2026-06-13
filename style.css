@@ -1,23 +1,104 @@
-/* --- CONFIGURAÇÕES EXCLUSIVAS DO SIMULADOR DA FAZENDA --- */
+/* --- ESTILOS GERAIS --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
+body {
+    background-color: #f0f4f1;
+    color: #2c3e50;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background: linear-gradient(135deg, #1e3d19, #2e5a27);
+    color: white;
+    text-align: center;
+    padding: 2rem 1rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    font-size: 2.2rem;
+    margin-bottom: 0.5rem;
+}
+
+header p {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.container {
+    max-width: 1000px;
+    width: 100%;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    flex: 1;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- INTERFACE DO JOGO --- */
 .game-header-flex {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
-.live-money-badge {
-    background-color: #15803d;
+.indicators-group {
+    display: flex;
+    gap: 15px;
+}
+
+.badge-ui {
     color: white;
-    font-size: 1.4rem;
+    font-size: 1.1rem;
     font-weight: bold;
-    padding: 0.4rem 1.2rem;
+    padding: 0.5rem 1rem;
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
-/* Ícone do Gatilho Hambúrguer */
+.bg-money { background-color: #15803d; }
+.bg-carbon-good { background-color: #0284c7; }
+.bg-carbon-bad { background-color: #b91c1c; }
+
+#canvas-container {
+    position: relative;
+    background: #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 3px solid #cbd5e1;
+    display: flex;
+    justify-content: center;
+}
+
+canvas {
+    display: block;
+    background-color: #22c55e;
+}
+
+/* --- MENU HAMBÚRGUER E SIDEBAR --- */
 .hamburger-icon {
     position: fixed;
     top: 20px;
@@ -25,29 +106,26 @@
     background-color: #1e3d19;
     color: white;
     padding: 0.6rem 1.2rem;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: bold;
     border-radius: 6px;
     cursor: pointer;
     z-index: 1000;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     transition: background 0.2s;
 }
 
-.hamburger-icon:hover {
-    background-color: #2e5a27;
-}
+.hamburger-icon:hover { background-color: #2e5a27; }
 
-/* Menu Lateral Esquerdo (Sidebar) */
 .sidebar {
     position: fixed;
     top: 0;
     left: 0;
-    width: 310px;
+    width: 320px;
     height: 100%;
     background-color: #ffffff;
     box-shadow: 5px 0 20px rgba(0,0,0,0.2);
-    z-index: 999;
+    z-index: 1001;
     padding: 25px;
     overflow-y: auto;
     display: flex;
@@ -63,27 +141,9 @@
     margin-bottom: 15px;
 }
 
-.sidebar-header h3 {
-    color: #1e3d19;
-}
-
-.close-btn {
-    font-size: 2rem;
-    font-weight: bold;
-    cursor: pointer;
-    color: #94a3b8;
-}
-
-.close-btn:hover {
-    color: #ef4444;
-}
-
-.farm-logo-area {
-    font-size: 3.5rem;
-    text-align: center;
-    margin: 10px 0;
-    animation: float 4s ease-in-out infinite;
-}
+.sidebar-header h3 { color: #1e3d19; }
+.close-btn { font-size: 2rem; font-weight: bold; cursor: pointer; color: #94a3b8; }
+.close-btn:hover { color: #ef4444; }
 
 .wallet-box {
     background: #f0fdf4;
@@ -94,16 +154,7 @@
     margin-bottom: 15px;
 }
 
-.wallet-box p {
-    font-size: 0.85rem;
-    color: #166534;
-}
-
-.wallet-box .money-txt {
-    font-size: 1.6rem;
-    font-weight: bold;
-    color: #15803d;
-}
+.wallet-box .money-txt { font-size: 1.5rem; font-weight: bold; color: #15803d; }
 
 .manual-box {
     background-color: #f8fafc;
@@ -112,30 +163,13 @@
     border-radius: 4px;
     font-size: 0.85rem;
     color: #334155;
+    max-height: 250px;
+    overflow-y: auto;
 }
 
-.manual-box ul {
-    list-style: none;
-    margin-left: 5px;
-    margin-top: 5px;
-}
-
-.manual-box li {
-    margin-bottom: 4px;
-}
-
-.badge {
-    background: #cbd5e1;
-    padding: 1px 5px;
-    border-radius: 4px;
-    font-family: monospace;
-    font-weight: bold;
-}
-
-.margin-top {
-    margin-top: 8px;
-    display: block;
-}
+.manual-box ul { list-style: none; margin-top: 5px; }
+.manual-box li { margin-bottom: 6px; }
+.badge { background: #cbd5e1; padding: 1px 5px; border-radius: 4px; font-family: monospace; font-weight: bold; }
 
 .land-btn {
     background-color: #f59e0b;
@@ -148,13 +182,9 @@
     cursor: pointer;
     margin-bottom: 8px;
     font-weight: bold;
-    text-align: center;
     transition: background 0.2s;
 }
-
-.land-btn:hover {
-    background-color: #d97706;
-}
+.land-btn:hover { background-color: #d97706; }
 
 .sidebar-main-action-btn {
     background-color: #dc2626;
@@ -178,24 +208,13 @@
     padding: 15px;
     border-radius: 10px;
     margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
-.vehicle-status-card .label {
-    font-size: 0.8rem;
-    color: #64748b;
-    text-transform: uppercase;
-}
-
-.vehicle-status-card .value {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #1e293b;
-}
-
-.vehicle-status-card .sub-value {
-    font-size: 0.9rem;
-    color: #475569;
-}
+.vehicle-status-card .label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; }
+.vehicle-status-card .value { font-size: 1.2rem; font-weight: bold; color: #1e293b; }
+.vehicle-status-card .sub-value { font-size: 0.9rem; color: #475569; font-weight: 500; }
 
 .control-action-btn {
     background-color: #2e5a27;
@@ -206,16 +225,17 @@
     font-weight: bold;
     border-radius: 6px;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: background 0.2s;
+}
+.control-action-btn:hover { background-color: #1e3d19; }
+
+footer {
+    text-align: center;
+    padding: 1.5rem;
+    background: #1e293b;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    margin-top: auto;
 }
 
-.control-action-btn:hover {
-    background-color: #1e3d19;
-}
-
-hr {
-    border: 0;
-    height: 1px;
-    background: #e2e8f0;
-    margin: 15px 0;
-}
+hr { border: 0; height: 1px; background: #e2e8f0; margin: 15px 0; }
