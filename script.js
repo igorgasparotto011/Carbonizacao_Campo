@@ -92,7 +92,7 @@ const quizData = [
     }
 ];
 
-// --- VARIÁVEIS DE ELEMENTOS ---
+// --- GESTÃO DE INTERFACES E NAVEGAÇÃO ---
 let currentQuestionIndex = 0;
 
 const menuSection = document.getElementById('menu-section');
@@ -105,7 +105,26 @@ const questionNumberEl = document.getElementById('question-number');
 const questionTextEl = document.getElementById('question-text');
 const optionsContainerEl = document.getElementById('options-container');
 
-// Ouvinte do Menu Inicial
+// Gatilhos do Menu Hambúrguer Lateral
+const hamburgerMenu = document.getElementById('hamburger-menu');
+const sidebar = document.getElementById('sidebar');
+const closeSidebar = document.getElementById('close-sidebar');
+const sidebarMoneyEl = document.getElementById('sidebar-money');
+const gameMoneyEl = document.getElementById('game-money');
+const currentVehicleTxt = document.getElementById('current-vehicle-txt');
+const cargoStatsTxt = document.getElementById('cargo-stats-txt');
+
+const switchVehBtn = document.getElementById('switch-veh-btn');
+const sidebarStartBtn = document.getElementById('sidebar-start-btn');
+
+// Expansões de Terrenos
+const buyLand3Btn = document.getElementById('buy-land-3');
+const buyLand4Btn = document.getElementById('buy-land-4');
+
+hamburgerMenu.addEventListener('click', () => sidebar.classList.remove('hidden'));
+closeSidebar.addEventListener('click', () => sidebar.classList.add('hidden'));
+sidebarStartBtn.addEventListener('click', () => { sidebar.classList.add('hidden'); initFarmSimulator(); });
+
 startQuizBtn.addEventListener('click', () => {
     menuSection.classList.add('hidden');
     infoSection.classList.remove('hidden');
@@ -113,7 +132,6 @@ startQuizBtn.addEventListener('click', () => {
     startQuiz();
 });
 
-// --- INICIALIZAR QUIZ ---
 function startQuiz() {
     currentQuestionIndex = 0;
     showQuestion();
@@ -146,7 +164,8 @@ function selectAnswer(selectedButton, isCorrect) {
                 quizSection.classList.add('hidden');
                 infoSection.classList.add('hidden');
                 gameSection.classList.remove('hidden');
-                initGame();
+                hamburgerMenu.classList.remove('hidden'); 
+                initFarmSimulator();
             }
         }, 500);
     } else {
@@ -155,192 +174,310 @@ function selectAnswer(selectedButton, isCorrect) {
     }
 }
 
-// --- LOGICA DO JOGO DO TRATOR APERFEIÇOADO ---
+// --- NOVO SISTEMA DO SIMULADOR DA FAZENDA ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
-const restartBtn = document.getElementById('restart-btn');
 
-let trator, obstaculos, gameScore, gameInterval, isGameOver;
+let farmWallet = 0;
+let activeVehicleIndex = 0; 
+let farmLoopInterval = null;
+let activeKeys = {};
 
-function initGame() {
-    trator = {
-        x: canvas.width / 2 - 20,
-        y: canvas.height - 80,
-        width: 40,
-        height: 55,
-        speedX: 0,
-        speedY: 0
-    };
-    obstaculos = [];
-    gameScore = 0;
-    isGameOver = false;
-    scoreEl.innerText = gameScore;
-    restartBtn.classList.add('hidden');
-    
-    window.removeEventListener('keydown', handleKeyDown);
-    window.removeEventListener('keyup', handleKeyUp);
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    
-    if(gameInterval) clearInterval(gameInterval);
-    gameInterval = setInterval(updateGame, 20);
-}
+// Entidades de Jogo
+let vehiclesList = [];
+let landSectors = [];
+let storageSilo = { x: 620, y: 30, w: 110, h: 110 };
 
-function handleKeyDown(e) {
-    if (isGameOver) return;
-    const key = e.key.toLowerCase();
-    if (key === 'd') trator.speedY = -3.5; 
-    if (key === 'w') trator.speedX = 4.5;  
-    if (key === 'a') trator.speedX = -4.5; 
-}
+function initFarmSimulator() {
+    farmWallet = 0;
+    activeVehicleIndex = 0;
+    activeKeys = {};
+    updateUserInterface();
 
-function handleKeyUp(e) {
-    const key = e.key.toLowerCase();
-    if (key === 'd') trator.speedY = 0;
-    if (key === 'w' || key === 'a') trator.speedX = 0;
-}
+    // Criação da Frota de Veículos (W, A, S, D para controle universal)
+    vehiclesList = [
+        { id: 0, nome: "Colheitadeira Vermelha (Soja)", tipo: "harvester_soja", x: 120, y: 380, w: 42, h: 50, speed: 2.8, color: "#ef4444", cargoType: null, cargoAmount: 0, cargoMax: 100 },
+        { id: 1, nome: "Colheitadeira Amarela (Milho)", tipo: "harvester_milho", x: 240, y: 380, w: 42, h: 50, speed: 2.8, color: "#fbbf24", cargoType: null, cargoAmount: 0, cargoMax: 100 },
+        { id: 2, nome: "Caminhão Azul de Caçamba", tipo: "truck", x: 380, y: 380, w: 38, h: 60, speed: 3.8, color: "#3b82f6", cargoType: null, cargoAmount: 0, cargoMax: 300 }
+    ];
 
-function criarObstaculo() {
-    // Frequência de geração aumenta levemente com os pontos obtidos
-    let chance = 0.03 + (gameScore * 0.001);
-    if (Math.random() < Math.min(chance, 0.08)) {
-        let largura = 35 + Math.random() * 35;
-        let posX = 60 + Math.random() * (canvas.width - 120 - largura);
-        let tipo = Math.random() > 0.4 ? 'tronco' : 'fumaca'; 
+    // Criação dos Setores de Produção da Fazenda
+    landSectors = [
+        // Terrenos Iniciais Livres (Índices 0 e 1)
+        { id: 1, x: 30, y: 30, w: 140, h: 180, cropType: "milho", label: "Talhão Milho A", harvested: false, regrowthTime: 0, locked: false },
+        { id: 2, x: 200, y: 30, w: 140, h: 180, cropType: "soja", label: "Talhão Soja A", harvested: false, regrowthTime: 0, locked: false },
         
-        obstaculos.push({
-            x: posX,
-            y: -40,
-            width: largura,
-            height: tipo === 'tronco' ? 25 : 35,
-            tipo: tipo,
-            faseFumaca: 0 // Usado para efeitos visuais dinâmicos da fumaça
-        });
+        // Terrenos Travados para Compra pelo Menu Hambúrguer (Índices 2 e 3)
+        { id: 3, x: 30, y: 240, w: 140, h: 120, cropType: "milho", label: "Expansão Norte", harvested: false, regrowthTime: 0, locked: true, cost: 30 },
+        { id: 4, x: 200, y: 240, w: 140, h: 120, cropType: "soja", label: "Expansão Sul", harvested: false, regrowthTime: 0, locked: true, cost: 50 }
+    ];
+
+    window.removeEventListener('keydown', registerKeyDown);
+    window.removeEventListener('keyup', registerKeyUp);
+    window.addEventListener('keydown', registerKeyDown);
+    window.addEventListener('keyup', registerKeyUp);
+
+    if (farmLoopInterval) clearInterval(farmLoopInterval);
+    farmLoopInterval = setInterval(renderFarmStep, 1000 / 60); // 60 FPS
+}
+
+function registerKeyDown(e) {
+    activeKeys[e.key.toLowerCase()] = true;
+
+    // Gatilhos Rápidos de Botão Único
+    if (e.key.toLowerCase() === 'g') transboardCargo();
+    if (e.key.toLowerCase() === 'f') sellCargoAtSilo();
+}
+
+function registerKeyUp(e) {
+    activeKeys[e.key.toLowerCase()] = false;
+}
+
+// Troca de veículos
+switchVehBtn.addEventListener('click', () => {
+    activeVehicleIndex = (activeVehicleIndex + 1) % vehiclesList.length;
+    updateUserInterface();
+});
+
+// Compras de Expansão via Menu Lateral
+buyLand3Btn.addEventListener('click', () => purchaseSector(3, buyLand3Btn));
+buyLand4Btn.addEventListener('click', () => purchaseSector(4, buyLand4Btn));
+
+function purchaseSector(id, buttonEl) {
+    let sector = landSectors.find(s => s.id === id);
+    if (!sector) return;
+    
+    if (!sector.locked) {
+        alert("Esta área já foi adquirida!");
+        return;
+    }
+
+    if (farmWallet >= sector.cost) {
+        farmWallet -= sector.cost;
+        sector.locked = false;
+        buttonEl.innerHTML = `${sector.label} <br><strong>[ADQUIRIDO]</strong>`;
+        buttonEl.style.background = "#10b981";
+        updateUserInterface();
+        alert(`Sucesso! O ${sector.label} foi limpo e está pronto para produção.`);
+    } else {
+        alert(`Saldo insuficiente! Você precisa de R$ ${sector.cost} para este lote.`);
     }
 }
 
-function updateGame() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // 1. DESENHO DO CENÁRIO (Pista de terra estilizada com vegetação lateral)
-    ctx.fillStyle = '#6d4c41'; // Terra fértil
-    ctx.fillRect(50, 0, canvas.width - 100, canvas.height);
-    
-    // Linhas de demarcação do limite da plantação
-    ctx.strokeStyle = '#a78bfa';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 10]);
-    ctx.beginPath();
-    ctx.moveTo(55, 0); ctx.lineTo(55, canvas.height);
-    ctx.moveTo(canvas.width - 55, 0); ctx.lineTo(canvas.width - 55, canvas.height);
-    ctx.stroke();
-    ctx.setLineDash([]);
+function updateUserInterface() {
+    gameMoneyEl.innerText = farmWallet;
+    sidebarMoneyEl.innerText = farmWallet;
 
-    // Detalhes da grama lateral externa
-    ctx.fillStyle = '#33691e';
-    ctx.fillRect(0, 0, 50, canvas.height);
-    ctx.fillRect(canvas.width - 50, 0, 50, canvas.height);
+    let current = vehiclesList[activeVehicleIndex];
+    currentVehicleTxt.innerText = current.nome;
     
-    // 2. MOVIMENTAÇÃO DO TRATOR (Com travas de borda seguras)
-    trator.x += (trator.x + trator.speedX > 55 && trator.x + trator.speedX < canvas.width - 55 - trator.width) ? trator.speedX : 0;
-    trator.y += (trator.y + trator.speedY > 20 && trator.y + trator.speedY < canvas.height - trator.height - 10) ? trator.speedY : 0;
-    
-    if (trator.speedY === 0 && trator.y < canvas.height - 80) {
-        trator.y += 1.2; 
+    let typeStr = current.cargoType ? current.cargoType.toUpperCase() : "Vazio";
+    cargoStatsTxt.innerText = `Carga: ${typeStr} (${current.cargoAmount}/${current.cargoMax})`;
+}
+
+// Ação [G] - Descarregar da Colheitadeira para o Caminhão
+function transboardCargo() {
+    let current = vehiclesList[activeVehicleIndex];
+    if (current.tipo !== "harvester_soja" && current.tipo !== "harvester_milho") {
+        alert("Apenas as colheitadeiras realizam transbordo de grãos!");
+        return;
+    }
+    if (current.cargoAmount === 0) {
+        alert("Esta colheitadeira está sem carga armazenada.");
+        return;
     }
 
-    // 3. DESENHO DO TRATOR MELHORADO TRIDIMENSIONAL
-    // Rodas traseiras grandes pretas
-    ctx.fillStyle = '#111';
-    ctx.fillRect(trator.x - 6, trator.y + 25, 7, 22);
-    ctx.fillRect(trator.x + trator.width - 1, trator.y + 25, 7, 22);
-    // Rodas dianteiras pequenas
-    ctx.fillRect(trator.x - 4, trator.y + 4, 5, 12);
-    ctx.fillRect(trator.x + trator.width - 1, trator.y + 4, 5, 12);
-    
-    // Corpo principal (Verde Clássico Agro)
-    ctx.fillStyle = '#2e7d32';
-    ctx.fillRect(trator.x, trator.y + 10, trator.width, trator.height - 15);
-    // Motor frontal estreito
-    ctx.fillRect(trator.x + 6, trator.y, trator.width - 12, 15);
-    
-    // Cabine do Piloto (Amarelo/Vidro)
-    ctx.fillStyle = '#fff59d';
-    ctx.fillRect(trator.x + 5, trator.y + 18, trator.width - 10, 16);
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(trator.x + 5, trator.y + 18, trator.width - 10, 16);
-    
-    // Escapamento de fumaça ecológica
-    ctx.fillStyle = '#cfd8dc';
-    ctx.fillRect(trator.x + 8, trator.y + 4, 3, 6);
+    let truck = vehiclesList.find(v => v.tipo === "truck");
+    let distance = Math.hypot((current.x + current.w/2) - (truck.x + truck.w/2), (current.y + current.h/2) - (truck.y + truck.h/2));
 
-    // 4. GERENCIAR OBSTÁCULOS
-    criarObstaculo();
-    
-    for (let i = 0; i < obstaculos.length; i++) {
-        let obs = obstaculos[i];
-        obs.y += 3.5; // Velocidade de descida
-        
-        // Desenho customizado por tipo de obstáculo
-        if (obs.tipo === 'tronco') {
-            // Corpo do tronco (Marrom escuro)
-            ctx.fillStyle = '#4e342e';
-            ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-            // Textura das extremidades (Anéis de madeira)
-            ctx.fillStyle = '#d7ccc8';
-            ctx.fillRect(obs.x, obs.y, 6, obs.height);
-            ctx.fillRect(obs.x + obs.width - 6, obs.y, 6, obs.height);
+    if (distance <= 90) {
+        if (truck.cargoType === null || truck.cargoType === current.cargoType) {
+            let availableSpace = truck.cargoMax - truck.cargoAmount;
+            let amountToMove = Math.min(current.cargoAmount, availableSpace);
+
+            if (amountToMove > 0) {
+                truck.cargoType = current.cargoType;
+                truck.cargoAmount += amountToMove;
+                current.cargoAmount -= amountToMove;
+                if (current.cargoAmount === 0) current.cargoType = null;
+                updateUserInterface();
+                alert(`Transbordo Concluído: +${amountToMove} unidades enviadas ao Caminhão.`);
+            } else {
+                alert("A caçamba do caminhão azul está cheia!");
+            }
         } else {
-            // Nuvem de fumaça de carbonização poluente (Círculos cinzas esfumaçados)
-            obs.faseFumaca += 0.1;
-            ctx.fillStyle = 'rgba(100, 110, 120, 0.75)';
-            ctx.beginPath();
-            ctx.arc(obs.x + obs.width/2, obs.y + obs.height/2, obs.width/2, 0, Math.PI * 2);
-            ctx.arc(obs.x + obs.width/4, obs.y + obs.height/3, obs.width/3, 0, Math.PI * 2);
-            ctx.arc(obs.x + (obs.width*3)/4, obs.y + obs.height/3, obs.width/3, 0, Math.PI * 2);
-            ctx.fill();
+            alert("Operação negada! Não misture Milho e Soja na mesma caçamba.");
         }
-        
-        // Detecção de Colisão Precisa
-        if (
-            trator.x < obs.x + obs.width &&
-            trator.x + trator.width > obs.x &&
-            trator.y < obs.y + obs.height &&
-            trator.y + trator.height > obs.y
-        ) {
-            gameOver();
-        }
-        
-        // Passou sem bater: limpa e adiciona pontuação
-        if (obs.y > canvas.height) {
-            obstaculos.splice(i, 1);
-            i--;
-            gameScore++;
-            scoreEl.innerText = gameScore;
-        }
+    } else {
+        alert("Aproxime-se do Caminhão Azul para efetuar o transbordo!");
     }
 }
 
-function gameOver() {
-    isGameOver = true;
-    clearInterval(gameInterval);
-    
-    // Cortina escura estilizada de Game Over
-    ctx.fillStyle = 'rgba(26, 42, 24, 0.85)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText("Fim de Jogo no Campo!", canvas.width / 2, canvas.height / 2 - 20);
-    
-    ctx.fillStyle = '#a5d6a7';
-    ctx.font = '18px sans-serif';
-    ctx.fillText(`Você ajudou a monitorar ${gameScore} setores da fazenda!`, canvas.width / 2, canvas.height / 2 + 15);
-    
-    restartBtn.classList.remove('hidden');
+// Ação [F] - Descarregar do Caminhão para o Galpão/Silo por dinheiro
+function sellCargoAtSilo() {
+    let current = vehiclesList[activeVehicleIndex];
+    if (current.tipo !== "truck") {
+        alert("Apenas o Caminhão Azul de Caçamba faz entregas no Silo Comercial!");
+        return;
+    }
+    if (current.cargoAmount === 0) {
+        alert("O caminhão não possui carga para venda.");
+        return;
+    }
+
+    // Validação de intersecção com a área do Silo
+    if (current.x + current.w > storageSilo.x && current.x < storageSilo.x + storageSilo.w &&
+        current.y + current.h > storageSilo.y && current.y < storageSilo.y + storageSilo.h) {
+        
+        // Cada ciclo de descarga rende R$ 10 de lucro líquido direto para a carteira
+        let payoutCycles = Math.ceil(current.cargoAmount / 50); 
+        let totalProfit = payoutCycles * 10;
+
+        farmWallet += totalProfit;
+        current.cargoAmount = 0;
+        current.cargoType = null;
+        updateUserInterface();
+        alert(`Venda efetuada no Galpão! Carga líquida convertida em R$ ${totalProfit}.`);
+    } else {
+        alert("Estacione o Caminhão Azul dentro do Galpão Cinza no canto superior direito.");
+    }
 }
 
-restartBtn.addEventListener('click', initGame);
+// --- LAÇO DE RENDERIZAÇÃO REAL-TIME ---
+function renderFarmStep() {
+    let now = Date.now();
+
+    // 1. LIMPEZA E DESENHO DO TERRENO BASE
+    ctx.fillStyle = "#22c55e"; // Cor da grama nativa
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Estradas e pátios de manobra
+    ctx.fillStyle = "#78350f"; // Terra escura para manobras
+    ctx.fillRect(400, 0, 150, canvas.height);
+    ctx.fillRect(0, 400, canvas.width, 80);
+
+    // Desenho do Silo / Galpão Comercial
+    ctx.fillStyle = "#64748b";
+    ctx.fillRect(storageSilo.x, storageSilo.y, storageSilo.w, storageSilo.h);
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(storageSilo.x + 20, storageSilo.y + storageSilo.h - 15, storageSilo.w - 40, 15); // Baia de recebimento
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("GALPÃO (F)", storageSilo.x + 22, storageSilo.y + 45);
+
+    // 2. COMPORTAMENTO E RENDERIZAÇÃO DOS TERRENOS
+    landSectors.forEach(sector => {
+        if (sector.locked) {
+            // Área Bloqueada por Grade
+            ctx.fillStyle = "rgba(30, 41, 59, 0.85)";
+            ctx.fillRect(sector.x, sector.y, sector.w, sector.h);
+            ctx.strokeStyle = "#ef4444";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(sector.x, sector.y, sector.w, sector.h);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "11px sans-serif";
+            ctx.fillText("🔒 BLOQUEADO", sector.x + 25, sector.y + sector.h / 2);
+            ctx.fillText(`Custo: R$ ${sector.cost}`, sector.x + 35, sector.y + sector.h / 2 + 15);
+            return;
+        }
+
+        // Se o terreno estiver liberado, processa ciclo de crescimento
+        if (sector.harvested && now >= sector.regrowthTime) {
+            sector.harvested = false; // Cresceu de novo!
+        }
+
+        if (!sector.harvested) {
+            // Renderiza Plantação Pronta para Colheita
+            ctx.fillStyle = (sector.cropType === "milho") ? "#f59e0b" : "#854d0e";
+            ctx.fillRect(sector.x, sector.y, sector.w, sector.h);
+            
+            // Detalhes estéticos das fileiras plantadas
+            ctx.fillStyle = (sector.cropType === "milho") ? "#fef08a" : "#a16207";
+            for (let i = 10; i < sector.w; i += 25) {
+                ctx.fillRect(sector.x + i, sector.y + 5, 4, sector.h - 10);
+            }
+        } else {
+            // Renderiza Terra Arada aguardando o tempo de 2 minutos
+            ctx.fillStyle = "#451a03";
+            ctx.fillRect(sector.x, sector.y, sector.w, sector.h);
+            
+            let secondsLeft = Math.max(0, Math.round((sector.regrowthTime - now) / 1000));
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 12px monospace";
+            ctx.fillText(`Crescendo: ${secondsLeft}s`, sector.x + 15, sector.y + sector.h / 2);
+        }
+    });
+
+    // 3. FÍSICA E ATUALIZAÇÃO DO VEÍCULO SELECIONADO
+    let currentVeh = vehiclesList[activeVehicleIndex];
+    
+    if (activeKeys['w']) currentVeh.y -= currentVeh.speed;
+    if (activeKeys['s']) currentVeh.y += currentVeh.speed;
+    if (activeKeys['a']) currentVeh.x -= currentVeh.speed;
+    if (activeKeys['d']) currentVeh.x += currentVeh.speed;
+
+    // Confinamento de colisão com as bordas do canvas
+    currentVeh.x = Math.max(0, Math.min(canvas.width - currentVeh.w, currentVeh.x));
+    currentVeh.y = Math.max(0, Math.min(canvas.height - currentVeh.h, currentVeh.y));
+
+    // 4. VERIFICAÇÃO DE SOBREPOSIÇÃO PARA COLHEITA AUTOMÁTICA
+    landSectors.forEach(sector => {
+        if (!sector.locked && !sector.harvested) {
+            // Detecção de colisão AABB simples
+            if (currentVeh.x < sector.x + sector.w && currentVeh.x + currentVeh.w > sector.x &&
+                currentVeh.y < sector.y + sector.h && currentVeh.y + currentVeh.h > sector.y) {
+                
+                // Validação de funções solicitadas por tipo
+                if (currentVeh.tipo === "harvester_milho" && sector.cropType === "milho" && currentVeh.cargoAmount < currentVeh.cargoMax) {
+                    sector.harvested = true;
+                    sector.regrowthTime = now + 120000; // 120000ms = Exatamente 2 Minutos
+                    currentVeh.cargoType = "milho";
+                    currentVeh.cargoAmount = Math.min(currentVeh.cargoMax, currentVeh.cargoAmount + 25);
+                    updateUserInterface();
+                }
+                else if (currentVeh.tipo === "harvester_soja" && sector.cropType === "soja" && currentVeh.cargoAmount < currentVeh.cargoMax) {
+                    sector.harvested = true;
+                    sector.regrowthTime = now + 120000; // Exatamente 2 Minutos
+                    currentVeh.cargoType = "soja";
+                    currentVeh.cargoAmount = Math.min(currentVeh.cargoMax, currentVeh.cargoAmount + 25);
+                    updateUserInterface();
+                }
+            }
+        }
+    });
+
+    // 5. RENDERIZAÇÃO DOS GRÁFICOS DOS VEÍCULOS
+    vehiclesList.forEach(v => {
+        ctx.fillStyle = v.color;
+        ctx.fillRect(v.x, v.y, v.w, v.h);
+
+        // Cabines dos operadores
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillRect(v.x + 5, v.y + 8, v.w - 10, 12);
+
+        // Rodas laterais pretas
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(v.x - 3, v.y + 10, 4, 12);
+        ctx.fillRect(v.x + v.w, v.y + 10, 4, 12);
+        ctx.fillRect(v.x - 3, v.y + v.h - 18, 4, 12);
+        ctx.fillRect(v.x + v.w, v.y + v.h - 18, 4, 12);
+
+        // Caixa de Carga Interna (Visual da Caçamba Enchendo)
+        if (v.cargoAmount > 0) {
+            let fillPercentage = v.cargoAmount / v.cargoMax;
+            ctx.fillStyle = (v.cargoType === "milho") ? "#f59e0b" : "#b45309";
+            ctx.fillRect(v.x + 6, v.y + v.h - 16, (v.w - 12) * fillPercentage, 8);
+        }
+
+        // Indicador de Controle Ativo ("VOCÊ")
+        if (v.id === vehiclesList[activeVehicleIndex].id) {
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(v.x - 5, v.y - 5, v.w + 10, v.h + 10);
+            
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 10px sans-serif";
+            ctx.fillText("ATIVO", v.x + 3, v.y - 8);
+        }
+    });
+}
