@@ -8,6 +8,57 @@
 </head>
 <body>
 
+    <div id="hamburger-menu" class="hamburger-icon hidden">☰ Menu Fazenda</div>
+    <div id="sidebar" class="sidebar hidden">
+        <div class="sidebar-header">
+            <h3>Painel do Fazendeiro</h3>
+            <span id="close-sidebar" class="close-btn">&times;</span>
+        </div>
+        <div class="sidebar-content">
+            <div class="farm-logo-area">🌾🚜🌽</div>
+            
+            <div class="wallet-box">
+                <p>Seu Saldo Atual:</p>
+                <span class="money-txt">R$ <span id="sidebar-money">0</span></span>
+            </div>
+
+            <hr>
+
+            <h4>Manual de Instruções</h4>
+            <div class="manual-box">
+                <p><strong>Controles Globais:</strong></p>
+                <ul>
+                    <li><span class="badge">W</span> Mover para Cima</li>
+                    <li><span class="badge">S</span> Mover para Trás</li>
+                    <li><span class="badge">A</span> Mover para Esquerda</li>
+                    <li><span class="badge">D</span> Mover para Direita</li>
+                </ul>
+                <p class="margin-top"><strong>Mecânica de Colheita:</strong></p>
+                <ul>
+                    <li>🚜 <span style="color:#e53e3e; font-weight:bold;">Vermelha</span> colhe <strong>Soja</strong>.</li>
+                    <li>🚜 <span style="color:#d97706; font-weight:bold;">Amarela</span> colhe <strong>Milho</strong>.</li>
+                    <li>Passe por cima da planta madura para colher. Ela demora <strong>2 minutos</strong> para crescer novamente.</li>
+                </ul>
+                <p class="margin-top"><strong>Descarga e Venda:</strong></p>
+                <ul>
+                    <li>Aproxime a colheitadeira do caminhão e aperte <span class="badge">G</span> para transbordar a carga.</li>
+                    <li>Leve o 🚚 <strong>Caminhão Azul</strong> até o galpão cinza e aperte <span class="badge">F</span> para vender (Ganha <strong>R$ 10</strong> por ciclo).</li>
+                </ul>
+            </div>
+
+            <hr>
+
+            <h4>Expandir Propriedade</h4>
+            <div class="upgrades-list">
+                <button id="buy-land-3" class="land-btn">Desbloquear Área Norte (Milho) <br><strong>Custo: R$ 30</strong></button>
+                <button id="buy-land-4" class="land-btn">Desbloquear Área Sul (Soja) <br><strong>Custo: R$ 50</strong></button>
+            </div>
+            
+            <hr>
+            <button id="sidebar-start-btn" class="sidebar-main-action-btn">Reiniciar Simulação</button>
+        </div>
+    </div>
+
     <header>
         <h1>Carbonização no Campo</h1>
         <p>Entenda o impacto, a ciência e os desafios do carbono na agricultura.</p>
@@ -36,15 +87,25 @@
         </section>
 
         <section id="game-section" class="card hidden">
-            <h2>Jogo da Fazenda: Desafio do Trator</h2>
-            <p>Use as teclas do teclado para mover o trator e desviar dos obstáculos de fumaça e troncos!</p>
-            <p class="controls-hint"><strong>Controles:</strong> D = Avançar | W = Direita | A = Esquerda</p>
-            <div id="canvas-container">
-                <canvas id="gameCanvas" width="600" height="400"></canvas>
+            <div class="game-header-flex">
+                <h2>Grande Fazenda Sustentável</h2>
+                <div class="live-money-badge">R$ <span id="game-money">0</span></div>
             </div>
-            <div id="game-controls">
-                <p>Pontuação: <span id="score">0</span></p>
-                <button id="restart-btn" class="hidden">Jogar Novamente</button>
+            
+            <div id="canvas-container">
+                <canvas id="gameCanvas" width="750" height="480"></canvas>
+            </div>
+
+            <div class="control-panel-footer">
+                <div class="vehicle-status-card">
+                    <p class="label">Veículo Ativo:</p>
+                    <p id="current-vehicle-txt" class="value">Carregando...</p>
+                    <p id="cargo-stats-txt" class="sub-value">Carga: Vazio (0/100)</p>
+                </div>
+                
+                <div class="action-buttons-group">
+                    <button id="switch-veh-btn" class="control-action-btn">🔄 Trocar Veículo</button>
+                </div>
             </div>
         </section>
     </main>
